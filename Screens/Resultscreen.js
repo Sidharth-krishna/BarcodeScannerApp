@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-
 const STORAGE_KEY = "@scanned_barcodes";
 
 const ResultScreen = ({ route }) => {
@@ -22,7 +21,11 @@ const ResultScreen = ({ route }) => {
       if (!scannedData) return;
 
       const timestamp = new Date().toLocaleString();
-      const newScan = { code: scannedData, time: timestamp  };
+      const newScan = {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // Unique ID
+        code: scannedData,
+        time: timestamp,
+      };
 
       try {
         const stored = await AsyncStorage.getItem(STORAGE_KEY);
@@ -39,13 +42,24 @@ const ResultScreen = ({ route }) => {
     saveScan();
   }, [scannedData]);
 
-  // Load saved scans
+  // Load saved scans and fix missing IDs
   useEffect(() => {
     const loadScans = async () => {
       try {
         const stored = await AsyncStorage.getItem(STORAGE_KEY);
         if (stored) {
-          setScannedList(JSON.parse(stored));
+          let parsed = JSON.parse(stored);
+
+          // Assign IDs to any items missing one
+          parsed = parsed.map((item) => ({
+            ...item,
+            id:
+              item.id ||
+              Date.now().toString() + Math.random().toString(36).substr(2, 5),
+          }));
+
+          setScannedList(parsed);
+          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
         }
       } catch (error) {
         Alert.alert("Error", "Could not load saved scans.");
@@ -55,9 +69,9 @@ const ResultScreen = ({ route }) => {
     loadScans();
   }, []);
 
-  const deleteScan = async (index) => {
+  const deleteScan = async (id) => {
     try {
-      const updated = scannedList.filter((_, i) => i !== index);
+      const updated = scannedList.filter((item) => item.id !== id);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       setScannedList(updated);
     } catch (error) {
@@ -65,13 +79,26 @@ const ResultScreen = ({ route }) => {
     }
   };
 
-  const renderItem = ({ item, index }) => (
+  // OPTIONAL: Clear all
+  // const clearAll = async () => {
+  //   try {
+  //     await AsyncStorage.removeItem(STORAGE_KEY);
+  //     setScannedList([]);
+  //   } catch (error) {
+  //     Alert.alert("Error", "Could not clear items.");
+  //   }
+  // };
+
+  const renderItem = ({ item }) => (
     <View style={styles.item}>
       <View style={styles.textContainer}>
         <Text style={styles.code}>📦 {item.code}</Text>
         <Text style={styles.time}>🕒 {item.time}</Text>
       </View>
-      <TouchableOpacity onPress={() => deleteScan(index)} style={styles.deleteButton}>
+      <TouchableOpacity
+        onPress={() => deleteScan(item.id)}
+        style={styles.deleteButton}
+      >
         <Text style={styles.deleteText}>🗑️</Text>
       </TouchableOpacity>
     </View>
@@ -80,11 +107,18 @@ const ResultScreen = ({ route }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>Scanned Results</Text>
+
+      {/* Optional: Uncomment to add Clear All button */}
+      {/* <TouchableOpacity onPress={clearAll} style={styles.clearButton}>
+        <Text style={styles.clearButtonText}>Clear All</Text>
+      </TouchableOpacity> */}
+
       <FlatList
         data={scannedList}
-        keyExtractor={(_, index) => index.toString()}
+        keyExtractor={(item) => item.id}
         renderItem={renderItem}
         ListEmptyComponent={<Text>No scanned results yet.</Text>}
+        extraData={scannedList}
       />
     </View>
   );
@@ -131,8 +165,18 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
   },
-  
-
+  // Optional styles for clear button
+  clearButton: {
+    backgroundColor: "#888",
+    padding: 10,
+    borderRadius: 8,
+    alignSelf: "center",
+    marginBottom: 10,
+  },
+  clearButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
 });
 
 export default ResultScreen;
