@@ -1,20 +1,34 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import UsernameScreen from './Screens/UsernameScreen';
+import HomeScreen from './Screens/HomeScreen';
+import ScanScreen from './Screens/ScanScreen';
+import ResultScreen from './Screens/Resultscreen'
+
+const Stack = createNativeStackNavigator();
 
 export default function App() {
+  const [username, setUsername] = useState(null);
+
+  useEffect(() => {
+    const loadUsername = async () => {
+      const name = await AsyncStorage.getItem('username');
+      if (name) setUsername(name);
+    };
+    loadUsername();
+  }, []);
+
   return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName={username ? "Home" : "Username"}>
+        <Stack.Screen name="Username" component={UsernameScreen} />
+        <Stack.Screen name="HomeScreen" component={HomeScreen} />
+        <Stack.Screen name="Scan" component={ScanScreen} />
+        <Stack.Screen name="ResultScreen" component={ResultScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
