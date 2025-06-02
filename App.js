@@ -26,7 +26,7 @@ export default function App() {
       <Stack.Navigator initialRouteName={username ? "Home" : "Username"}>
         <Stack.Screen name="Username" component={UsernameScreen} />
         <Stack.Screen name="HomeScreen" component={HomeScreen} />
-        <Stack.Screen name="Scan" component={ScanScreen} />
+        <Stack.Screen name="ScanScreen" component={ScanScreen} />
         <Stack.Screen name="ResultScreen" component={ResultScreen} />
       </Stack.Navigator>
     </NavigationContainer>

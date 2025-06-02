@@ -24,7 +24,7 @@ const ScanScreen = () => {
     if (!scanned) {
       setScanned(true);
       
-      navigation.navigate("ResultScreen", { scannedData: data }); // ✅ This is the correct place
+      navigation.navigate("ResultScreen", { scannedData: data}); // ✅ This is the correct place
       setTimeout(() => setScanned(false), 3000);
     }
   };

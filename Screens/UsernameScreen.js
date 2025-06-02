@@ -1,73 +1,42 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  Button,
-  StyleSheet,
-  Alert,
-} from "react-native";
+import React, { useState } from "react";
+import { View, Text, TextInput, Button, StyleSheet, Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const UsernameScreen = ({ navigation }) => {
   const [username, setUsername] = useState("");
 
-  // Check if username already exists
-  useEffect(() => {
-    const checkUsername = async () => {
-      const storedName = await AsyncStorage.getItem("@username");
-      if (storedName) {
-        navigation.replace("HomeScreen"); // skip to home if already stored
-      }
-    };
-    checkUsername();
-  }, []);
-
-  const handleSave = async () => {
+  const saveUsername = async () => {
     if (username.trim() === "") {
-      Alert.alert("Error", "Please enter a valid name.");
+      Alert.alert("Error", "Please enter a valid name");
       return;
     }
-
-    try {
-      await AsyncStorage.setItem("@username", username.trim());
-      navigation.replace("HomeScreen");
-    } catch (error) {
-      Alert.alert("Error", "Failed to save name.");
-    }
+    await AsyncStorage.setItem("@username", username);
+    navigation.replace("HomeScreen");
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Enter Your Name</Text>
+      <Text style={styles.label}>Enter your name:</Text>
       <TextInput
         style={styles.input}
-        placeholder="Your name"
         value={username}
         onChangeText={setUsername}
+        placeholder="Your Name"
       />
-      <Button title="Continue" onPress={handleSave} />
+      <Button title="Continue" onPress={saveUsername} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 20,
-    textAlign: "center",
-  },
+  container: { flex: 1, justifyContent: "center", padding: 20 },
+  label: { fontSize: 20, marginBottom: 10 },
   input: {
     borderWidth: 1,
-    borderColor: "#999",
+    borderColor: "#aaa",
     padding: 10,
-    borderRadius: 8,
     marginBottom: 20,
+    borderRadius: 5,
   },
 });
 

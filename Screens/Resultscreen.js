@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 
 const STORAGE_KEY = "@scanned_barcodes";
 
@@ -15,14 +16,14 @@ const ResultScreen = ({ route }) => {
   const { scannedData } = route.params || {};
   const [scannedList, setScannedList] = useState([]);
 
-  // Save new scan if data was passed
+  // Save new scan if data is passed (from ScanScreen)
   useEffect(() => {
     const saveScan = async () => {
       if (!scannedData) return;
 
       const timestamp = new Date().toLocaleString();
       const newScan = {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // Unique ID
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
         code: scannedData,
         time: timestamp,
       };
@@ -35,40 +36,35 @@ const ResultScreen = ({ route }) => {
         await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedScans));
         setScannedList(updatedScans);
       } catch (error) {
-        Alert.alert("Error", "Could not save scan.");
+        Alert.alert("Error", "Could not save scanned data.");
       }
     };
 
     saveScan();
   }, [scannedData]);
 
-  // Load saved scans and fix missing IDs
-  useEffect(() => {
-    const loadScans = async () => {
-      try {
-        const stored = await AsyncStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          let parsed = JSON.parse(stored);
-
-          // Assign IDs to any items missing one
-          parsed = parsed.map((item) => ({
-            ...item,
-            id:
-              item.id ||
-              Date.now().toString() + Math.random().toString(36).substr(2, 5),
-          }));
-
-          setScannedList(parsed);
-          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+  // Load stored scans every time screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      const loadScans = async () => {
+        try {
+          const stored = await AsyncStorage.getItem(STORAGE_KEY);
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            setScannedList(parsed);
+          } else {
+            setScannedList([]);
+          }
+        } catch (error) {
+          Alert.alert("Error", "Could not load saved scans.");
         }
-      } catch (error) {
-        Alert.alert("Error", "Could not load saved scans.");
-      }
-    };
+      };
 
-    loadScans();
-  }, []);
+      loadScans();
+    }, [])
+  );
 
+  // Delete individual scan
   const deleteScan = async (id) => {
     try {
       const updated = scannedList.filter((item) => item.id !== id);
@@ -78,16 +74,6 @@ const ResultScreen = ({ route }) => {
       Alert.alert("Error", "Could not delete item.");
     }
   };
-
-  // OPTIONAL: Clear all
-  // const clearAll = async () => {
-  //   try {
-  //     await AsyncStorage.removeItem(STORAGE_KEY);
-  //     setScannedList([]);
-  //   } catch (error) {
-  //     Alert.alert("Error", "Could not clear items.");
-  //   }
-  // };
 
   const renderItem = ({ item }) => (
     <View style={styles.item}>
@@ -108,21 +94,21 @@ const ResultScreen = ({ route }) => {
     <View style={styles.container}>
       <Text style={styles.heading}>Scanned Results</Text>
 
-      {/* Optional: Uncomment to add Clear All button */}
-      {/* <TouchableOpacity onPress={clearAll} style={styles.clearButton}>
-        <Text style={styles.clearButtonText}>Clear All</Text>
-      </TouchableOpacity> */}
-
       <FlatList
         data={scannedList}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        ListEmptyComponent={<Text>No scanned results yet.</Text>}
-        extraData={scannedList}
+        ListEmptyComponent={
+          <Text style={{ textAlign: "center", marginTop: 20 }}>
+            No scanned results yet.
+          </Text>
+        }
       />
     </View>
   );
 };
+
+export default ResultScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -165,18 +151,4 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
   },
-  // Optional styles for clear button
-  clearButton: {
-    backgroundColor: "#888",
-    padding: 10,
-    borderRadius: 8,
-    alignSelf: "center",
-    marginBottom: 10,
-  },
-  clearButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
 });
-
-export default ResultScreen;
